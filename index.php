@@ -191,7 +191,7 @@ if (!$table->is_downloading()) {
     echo $OUTPUT->header();
     report_helper::print_report_selector($pluginname);
     // Print heading with help icon.
-    echo $OUTPUT->heading_with_help(get_string('reportfor', 'report_simultaneous', $course->fullname),
+    echo $OUTPUT->heading_with_help(get_string('reportfor', 'report_simultaneous', format_text($course->fullname)),
                                                'reportfor', 'report_simultaneous');
     // Print the filter form.
     $filterform->display();
