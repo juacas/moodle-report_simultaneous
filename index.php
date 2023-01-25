@@ -123,6 +123,9 @@ $filterform->set_data([
     'id' => $course->id,
     'startdate' => $startdate,
     'enddate' => $enddate,
+    'showokusers' => $showokusers,
+    'ssort' => $ssort,
+    'tdir' => $tdir
 ]);
 $PAGE->set_url($url);
 $perpage = SHOW_ALL_PAGE_SIZE;
@@ -163,9 +166,22 @@ $download = optional_param('download', '', PARAM_ALPHA);
 
 
 // Define the table.
-$headers = array("", "Status", get_string('user'), "Incourse", "InSite", "Messages sent", "Message Actions");
+$statusstr = get_string('status_column', 'report_simultaneous');
+$incoursestr = get_string('incourse_column', 'report_simultaneous');
+$insitestr = get_string('insite_column', 'report_simultaneous');
+$messagesentstr = get_string('messagesent_column', 'report_simultaneous');
+$messageactionsstr = get_string('messageactions_column', 'report_simultaneous');
+
+$headers = array("", $statusstr, get_string('user'), $incoursestr, $insitestr, $messagesentstr, $messageactionsstr);
+$headershelp = [null,
+                new \help_icon('status_column', 'report_simultaneous'),
+                null,
+                new \help_icon('incourse_column', 'report_simultaneous'),
+                new \help_icon('insite_column', 'report_simultaneous'),
+                new \help_icon('messagesent_column', 'report_simultaneous'),
+                new \help_icon('messageactions_column', 'report_simultaneous')];
 $columns = array('photo', 'warning', 'fullname', 'V1', 'V2', 'V3', 'V4');
-$table = report_simultaneous_create_table($url, $course, $columns, $headers, $download);
+$table = report_simultaneous_create_table($url, $course, $columns, $headers, $headershelp, $download);
 
 // Start report page.
 if (!$table->is_downloading()) {

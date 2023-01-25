@@ -246,7 +246,7 @@ function report_simultaneous_get_users_with_message_actions($course, $userswitha
     return $res;
 }
 
-function report_simultaneous_create_table($url, $course, $columns, $headers, $download) {
+function report_simultaneous_create_table($url, $course, $columns, $headers, $headershelp, $download) {
     global $OUTPUT, $CFG;
     $table = new flexible_table('course-simultaneous-' . $course->id);
     $table->is_downloading($download, 'simultaneous', 'simultaneous');
@@ -265,6 +265,7 @@ function report_simultaneous_create_table($url, $course, $columns, $headers, $do
     $table->show_download_buttons_at(array(TABLE_P_BOTTOM));
     $table->define_columns($columns);
     $table->define_headers($headers);
+    $table->define_help_for_headers($headershelp);
     $table->define_baseurl($url);
 
     $table->set_attribute('class', 'generaltable generalbox reporttable');
