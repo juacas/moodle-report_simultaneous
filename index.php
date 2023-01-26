@@ -171,16 +171,18 @@ $incoursestr = get_string('incourse_column', 'report_simultaneous');
 $insitestr = get_string('insite_column', 'report_simultaneous');
 $messagesentstr = get_string('messagesent_column', 'report_simultaneous');
 $messageactionsstr = get_string('messageactions_column', 'report_simultaneous');
+$ipsstr = get_string('ips_column', 'report_simultaneous');
 
-$headers = array("", $statusstr, get_string('user'), $incoursestr, $insitestr, $messagesentstr, $messageactionsstr);
+$headers = array("", $statusstr, get_string('user'), $incoursestr, $insitestr, $messagesentstr, $messageactionsstr, $ipsstr);
 $headershelp = [null,
                 new \help_icon('status_column', 'report_simultaneous'),
                 null,
                 new \help_icon('incourse_column', 'report_simultaneous'),
                 new \help_icon('insite_column', 'report_simultaneous'),
                 new \help_icon('messagesent_column', 'report_simultaneous'),
-                new \help_icon('messageactions_column', 'report_simultaneous')];
-$columns = array('photo', 'warning', 'fullname', 'V1', 'V2', 'V3', 'V4');
+                new \help_icon('messageactions_column', 'report_simultaneous'),
+                new \help_icon('ips_column', 'report_simultaneous')];
+$columns = array('photo', 'warning', 'fullname', 'V1', 'V2', 'V3', 'V4', 'V5');
 $table = report_simultaneous_create_table($url, $course, $columns, $headers, $headershelp, $download);
 
 // Start report page.
@@ -198,7 +200,10 @@ if (!$table->is_downloading()) {
 }
 
 // Generate the report data.
-$dataset = report_simultaneous_get_data($course, $table, $refmodules, $users, $userstolist, $startdate, $enddate, $showokusers);
+$checkboxes = empty($CFG->messaging);
+$htmlouput = $table->is_downloading() == 'html' || $table->is_downloading() == false;
+
+$dataset = report_simultaneous_get_data($course, $table, $refmodules, $users, $userstolist, $startdate, $enddate, $showokusers, $checkboxes, $htmlouput);
 // Sort dataset by field $fieldname.
 if ($ssort) {
     $columarr = array_column($dataset, $ssort);

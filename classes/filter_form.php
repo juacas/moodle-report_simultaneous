@@ -60,10 +60,12 @@ class filter_form extends \moodleform {
         $mform->setExpanded('filterheader', true);
         // Add form elements to select the role and module.
         $modules = $mform->addElement('select', 'refmodules', get_string('refmodules', 'report_simultaneous'), $moduleoptions);
+        $mform->addHelpButton('refmodules', 'refmodules', 'report_simultaneous');
         $modules->setMultiple(true);
         // Checkbox to show all users.
         $mform->addElement('advcheckbox', 'showokusers', get_string('showokusers', 'report_simultaneous'));
         $mform->setDefault('showokusers', false);
+        $mform->addHelpButton('showokusers', 'showokusers', 'report_simultaneous');
         // Add the filter/cancel buttons (without 'closeHeaderBefore', so they collapse with the filter).
         $buttonarray = [
             $mform->createElement('submit', 'submitbutton', get_string('filter')),

@@ -147,6 +147,36 @@ function report_simultaneous_get_users_with_activity($course, $safemodules, $sta
     return array_keys($users);
 }
 /**
+ * Returns a list of users that has events with more than an ip.
+ */
+function report_simultaneous_get_users_with_multiple_ips($userswithactivity, $startdate, $enddate) {
+    global $DB;
+
+    if (count($userswithactivity) == 0) {
+        return array();
+    }
+
+    list($uselegacyreader, $useinternalreader, $minloginternalreader, $logtable) = report_simultaneous_get_common_log_variables();
+
+    $params = array();
+    $params['startdate'] = $startdate;
+    $params['enddate'] = $enddate;
+    // Param for user query.
+    list($usersinsql, $inparams) = $DB->get_in_or_equal($userswithactivity, SQL_PARAMS_NAMED, 'users', true);
+    $params = array_merge($params, $inparams);
+
+    $sql = "SELECT DISTINCT userid, COUNT(DISTINCT ip) as count
+              FROM {" . $logtable . "}
+             WHERE timecreated >= :startdate
+               AND timecreated <= :enddate
+               AND userid $usersinsql
+          GROUP BY userid
+            HAVING count > 1";
+
+    $users = $DB->get_records_sql($sql, $params);
+    return $users;
+}
+/**
  * Returns a list of users who have viewed any module other than safemodules in a time window.
  * @param stdClass $course course object. If null, then all courses are considered.
  */
@@ -157,10 +187,16 @@ function report_simultaneous_get_users_with_activity_other($course, $safemodules
     }
     list($uselegacyreader, $useinternalreader, $minloginternalreader, $logtable) = report_simultaneous_get_common_log_variables();
     $params = array();
-    $params['safemodules'] = join(",", $safemodules);
+    // Param for safemodules query.
+    if (empty($safemodules)) {
+        $safemodulesinsql = '';
+        $inparamssafemodules = array();
+    } else {
+        list($safemodulesinsql, $inparamssafemodules) = $DB->get_in_or_equal($safemodules, SQL_PARAMS_NAMED, 'safemodules', false);
+    }   
     // Param for user query.
     list($usersinsql, $inparams) = $DB->get_in_or_equal($userswithactivity, SQL_PARAMS_NAMED, 'users', true);
-    $params = array_merge($params, $inparams);
+    $params = array_merge($params, $inparamssafemodules, $inparams);
 
     $incourse = '';
     if ($course != null) {
@@ -180,7 +216,7 @@ function report_simultaneous_get_users_with_activity_other($course, $safemodules
              WHERE anonymous = 0
                $incourse
                AND crud = 'r'
-               AND contextinstanceid not in (:safemodules)
+               AND contextinstanceid $safemodulesinsql
                AND userid $usersinsql
                $limittime
           GROUP BY userid";
@@ -289,8 +325,8 @@ function report_simultaneous_create_table($url, $course, $columns, $headers, $he
 /**
  * Returns a list of users who had activity in other modules in a time window.
  */
-function report_simultaneous_get_data($course, $table, $refmodules, $users, $userstolist, $startdate, $enddate, $showokusers) {
-    global $CFG, $OUTPUT;
+function report_simultaneous_get_data($course, $table, $refmodules, $users, $userstolist, $startdate, $enddate, $showokusers, $checkboxes = true, $htmlouput = true) {
+    global $OUTPUT;
     // Get users with activity in other modules in this course.
     $v1 = report_simultaneous_get_users_with_activity_other($course, $refmodules, $userstolist, $startdate, $enddate);
     // Get users with activity in other modules in any course.
@@ -299,14 +335,16 @@ function report_simultaneous_get_data($course, $table, $refmodules, $users, $use
     $v3 = report_simultaneous_get_users_with_messaging($course, $userstolist, $startdate, $enddate);
     // Get users with message actions.
     $v4 = report_simultaneous_get_users_with_message_actions($course, $userstolist, $startdate, $enddate);
+    // Get users with multiple ip addresses.
+    $v5 = report_simultaneous_get_users_with_multiple_ips($userstolist, $startdate, $enddate);
     // Create the listing.
     $dataset = array();
     foreach ($users as $u) {
         // Search userid in v1.
-        if ($showokusers || isset($v1[$u->id]) || isset($v2[$u->id]) || isset($v3[$u->id])) {
+        if ($showokusers || isset($v1[$u->id]) || isset($v2[$u->id]) || isset($v3[$u->id]) || isset($v4[$u->id]) || isset($v5[$u->id])) {
             $data = get_object_vars($u);
             // Add user photo.
-            if ($table->is_downloading() == false) {
+            if ( $htmlouput ) {
                 $data['photo'] = $OUTPUT->user_picture($u, array('courseid' => $course->id));
                 $data['fullname'] = html_writer::link(
                     new moodle_url('/user/view.php', array('id' => $u->id, 'course' => $course->id)),
@@ -317,23 +355,25 @@ function report_simultaneous_get_data($course, $table, $refmodules, $users, $use
                 $data['fullname'] = fullname($u, true);
             }
 
-            $data['V1'] = isset($v1[$u->id]) ? $v1[$u->id]->count : 0;
-            $data['V2'] = isset($v2[$u->id]) ? $v2[$u->id]->count : 0;
-            $data['V3'] = isset($v3[$u->id]) ? $v3[$u->id]->count : 0;
-            $data['V4'] = isset($v4[$u->id]) ? $v4[$u->id]->count : 0;
-            $warning = ($data['V1'] + $data['V2'] + $data['V3'] + $data['V4']) > 0;
-            if ($table->is_downloading() == true) {
-                $data['Warning'] = $warning ? get_string('yes') : get_string('no');
-            } else {
+            $data['V1'] = isset($v1[$u->id]) ? (int)$v1[$u->id]->count : 0;
+            $data['V2'] = isset($v2[$u->id]) ? (int)$v2[$u->id]->count : 0;
+            $data['V3'] = isset($v3[$u->id]) ? (int)$v3[$u->id]->count : 0;
+            $data['V4'] = isset($v4[$u->id]) ? (int)$v4[$u->id]->count : 0;
+            $data['V5'] = isset($v5[$u->id]) ? (int)$v5[$u->id]->count : 0;
+
+            $warning = ($data['V1'] + $data['V2'] + $data['V3'] + $data['V4'] + $data['V5']) > 0;
+            if ($htmlouput) {
                 // Output a icon of a moodle warning or OK sign.
                 if ($warning) {
-                    $data['warning'] = $OUTPUT->pix_icon('i/warning', get_string('yes'));
+                    $data['warning'] = $OUTPUT->pix_icon('i/warning', get_string('warning')) . get_string('warning');
                 } else {
-                    $data['warning'] = $OUTPUT->pix_icon('i/valid', get_string('no'));
+                    $data['warning'] = $OUTPUT->pix_icon('i/valid', get_string('ok')) . get_string('ok');
                 }
+            } else {
+                $data['warning'] = $warning ? get_string('warning') : get_string('ok');
             }
 
-            if (!empty($CFG->messaging) && $table->is_downloading() == false) {
+            if (!$checkboxes && $table->is_downloading() == false) {
                 $togglegroup = 'simultaneous-table';
                 if (empty($u->count)) {
                     $togglegroup .= ' no';
