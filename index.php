@@ -41,18 +41,16 @@ if (!$course = $DB->get_record('course', array('id' => $id))) {
     throw new moodle_exception('invalidcourse');
 }
 
-require_login($course);
-$context = context_course::instance($course->id);
-require_capability('report/simultaneous:view', $context);
-
-
 $strsimultaneous = get_string('simultaneousreport', 'report_simultaneous');
+$url = new moodle_url('/report/simultaneous/index.php', array('id' => $id));
 
-$PAGE->set_url('/report/simultaneous/index.php', array('id' => $course->id));
+$PAGE->set_url($url);
 $PAGE->set_title(format_string($course->shortname, true, array('context' => $context)) . ': ' . $strsimultaneous);
 $PAGE->set_heading(format_string($course->fullname, true, array('context' => $context)));
 
-
+require_login($course);
+$context = context_course::instance($course->id);
+require_capability('report/simultaneous:view', $context);
 
 // Release session lock.
 \core\session\manager::write_close();
@@ -90,7 +88,6 @@ if ($filterform->is_cancelled()) {
 }
 $filter = $filterform->get_data();
 
-$url = new moodle_url('/report/simultaneous/index.php', array('id' => $id));
 
 if ($filter) {
     $refmodules = $filter->refmodules;
