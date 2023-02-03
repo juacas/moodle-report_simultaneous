@@ -23,7 +23,6 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-use core\report_helper;
 
 require('../../config.php');
 require_once($CFG->dirroot . '/lib/tablelib.php');
@@ -41,15 +40,15 @@ if (!$course = $DB->get_record('course', array('id' => $id))) {
     throw new moodle_exception('invalidcourse');
 }
 
+require_login($course);
+$context = context_course::instance($course->id);
+
 $strsimultaneous = get_string('simultaneousreport', 'report_simultaneous');
 $url = new moodle_url('/report/simultaneous/index.php', array('id' => $id));
 
 $PAGE->set_url($url);
 $PAGE->set_title(format_string($course->shortname, true, array('context' => $context)) . ': ' . $strsimultaneous);
 $PAGE->set_heading(format_string($course->fullname, true, array('context' => $context)));
-
-require_login($course);
-$context = context_course::instance($course->id);
 require_capability('report/simultaneous:view', $context);
 
 // Release session lock.
@@ -184,11 +183,14 @@ $table = report_simultaneous_create_table($url, $course, $columns, $headers, $he
 
 // Start report page.
 if (!$table->is_downloading()) {
-    report_helper::save_selected_report($id, $url);
     // Print the selector dropdown.
     $pluginname = get_string('pluginname', 'report_simultaneous');
     echo $OUTPUT->header();
-    report_helper::print_report_selector($pluginname);
+    // If class report_helper exists, save the selected report.
+    if (class_exists('core\report_helper')) { // Moodle >= 3.10
+        core\report_helper::save_selected_report($id, $url);
+        core\report_helper::print_report_selector($pluginname);
+    }
     // Print heading with help icon.
     echo $OUTPUT->heading_with_help(get_string('reportfor', 'report_simultaneous', format_text($course->fullname)),
                                                'reportfor', 'report_simultaneous');
@@ -239,7 +241,6 @@ if (!$table->is_downloading()) {
             'disabled' => true
         );
         echo html_writer::select($displaylist, 'formaction', '', array('' => 'choosedots'), $withselectedparams);
-        echo '</div>';
         echo '</div>' . "\n";
         echo '</form>' . "\n";
 

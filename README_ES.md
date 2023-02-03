@@ -13,6 +13,7 @@ El informe realiza las siguientes búsquedas:
 - Visitas del usuario en cualquier parte del servidor completo (incluye otros cursos).
 - Mensajes instantáneos enviados por cada usuario.
 - Acciones realizadas sobre mensajes por cada usuario. Por ejemplo: borrar, leer, escribir mensajes instantáneos.
+- IPs diferentes usadas por el usuario.
 
 El plugin no da detalles de las acciones detectadas, únicamente ofrece el número de eventos detectados.
 
