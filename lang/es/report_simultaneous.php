@@ -48,4 +48,6 @@
  $string['messagesent_column_help'] = 'El número de mensajes instantáneos enviados por este usuario. Esto incluye mensajes enviados a otros usuarios y mensajes enviados a grupos. Este número incluye los mensajes enviados al propio usuario.';
  $string['messageactions_column'] = 'Acciones de mensajes';
  $string['messageactions_column_help'] = 'El número de acciones de mensajes instantáneos realizadas por este usuario. Esto incluye leer, borrar, etc. Este número incluye las acciones realizadas por el usuario en sus propios mensajes.';
+ $string['messagesentconversation_column'] = 'Conversaciones';
+ $string['messagesentconversation_column_help'] = 'Número de mensajes instantáneos enviados por este usuario a otros usuarios analizados. Esto incluye los mensajes enviados a otros usuarios y los mensajes enviados a grupos. Este número no incluye los mensajes enviados al propio usuario.';
  $string['privacy:metadata'] = 'El plugin Curso simultáneo no almacena ningún dato personal';

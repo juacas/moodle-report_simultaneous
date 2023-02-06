@@ -48,4 +48,6 @@ $string['messagesent_column'] = 'Messages sent';
 $string['messagesent_column_help'] = 'The number of instant messages sent by this user. This includes messages sent to other users and messages sent to groups. This number includes messages sent to the user himself.';
 $string['messageactions_column'] = 'Message actions';
 $string['messageactions_column_help'] = 'The number of instant message actions performed by this user. This includes reading, deleting, etc. This number includes actions performed by the user on his own messages.';
+$string['messagesentconversation_column'] = 'Conversations';
+$string['messagesentconversation_column_help'] = 'The number of instant messages sent by this user to other analysed users. This includes messages sent to other users and messages sent to groups. This number does not include messages sent to the user himself.';
 $string['privacy:metadata'] = 'The Course simultaneous plugin does not store any personal data.';

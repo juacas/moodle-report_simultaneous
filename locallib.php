@@ -232,12 +232,11 @@ function report_simultaneous_get_users_with_messaging($course, $userswithactivit
     if (count($userswithactivity) == 0) {
         return array();
     }
-    $logtable = 'messages';
     $params = array('courseid' => $course->id);
     // Param for users query.
     list($usersin, $inparams) = $DB->get_in_or_equal($userswithactivity, SQL_PARAMS_NAMED, 'users', true);
     $params = array_merge($params, $inparams);
-
+    
     $limittime = '';
     if ($startdate) {
         $limittime .= ' AND timecreated >= :startdate ';
@@ -247,6 +246,7 @@ function report_simultaneous_get_users_with_messaging($course, $userswithactivit
         $limittime .= ' AND timecreated < :enddate ';
         $params['enddate'] = $enddate;
     }
+    $logtable = 'messages';
     $sql = "SELECT useridfrom as userid, COUNT('x') AS count FROM {" . $logtable . "} l
             WHERE useridfrom $usersin
             $limittime
@@ -254,6 +254,9 @@ function report_simultaneous_get_users_with_messaging($course, $userswithactivit
     $res = $DB->get_records_sql($sql, $params);
     return $res;
 }
+/**
+ * Returns a list of users who had read, deleted or sent messages in a time window.
+ */
 function report_simultaneous_get_users_with_message_actions($course, $userswithactivity, $startdate, $enddate) {
     global $DB;
     if (count($userswithactivity) == 0) {
@@ -281,7 +284,38 @@ function report_simultaneous_get_users_with_message_actions($course, $userswitha
     $res = $DB->get_records_sql($sql, $params);
     return $res;
 }
+/**
+ * Returns a list of users who had sent messages to conversations that include target users, in a time window.
+ */
+function report_simultaneous_get_users_sent_message_to_conversations($course, $userswithactivity, $startdate, $enddate) {
+    global $DB;
+    if (count($userswithactivity) == 0) {
+        return array();
+    }
+    
+    $params = array('courseid' => $course->id);
+    // Param for users' query.
+    list($usersin, $inparams) = $DB->get_in_or_equal($userswithactivity, SQL_PARAMS_NAMED, 'users', true);
+    $params = array_merge($params, $inparams);
 
+    $limittime = '';
+    if ($startdate) {
+        $limittime .= ' AND m.timecreated >= :startdate ';
+        $params['startdate'] = $startdate;
+    }
+    if ($enddate) {
+        $limittime .= ' AND m.timecreated < :enddate ';
+        $params['enddate'] = $enddate;
+    }
+    $sql = "SELECT count('x') as count, useridfrom as userid
+            FROM {messages} m
+            LEFT JOIN {message_conversation_members} c ON m.conversationid = c.conversationid AND m.useridfrom <> c.userid
+            WHERE c.userid $usersin
+            $limittime
+            GROUP BY m.useridfrom";
+    $res = $DB->get_records_sql($sql, $params);
+    return $res;
+}
 function report_simultaneous_create_table($url, $course, $columns, $headers, $headershelp, $download) {
     global $OUTPUT, $CFG;
     $table = new flexible_table('course-simultaneous-' . $course->id);
@@ -337,6 +371,9 @@ function report_simultaneous_get_data($course, $table, $refmodules, $users, $use
     $v4 = report_simultaneous_get_users_with_message_actions($course, $userstolist, $startdate, $enddate);
     // Get users with multiple ip addresses.
     $v5 = report_simultaneous_get_users_with_multiple_ips($userstolist, $startdate, $enddate);
+    // Get users that sent messages to conversations that include target users.
+    $v6 = report_simultaneous_get_users_sent_message_to_conversations($course, $userstolist, $startdate, $enddate);
+
     // Create the listing.
     $dataset = array();
     foreach ($users as $u) {
@@ -360,8 +397,9 @@ function report_simultaneous_get_data($course, $table, $refmodules, $users, $use
             $data['V3'] = isset($v3[$u->id]) ? (int)$v3[$u->id]->count : 0;
             $data['V4'] = isset($v4[$u->id]) ? (int)$v4[$u->id]->count : 0;
             $data['V5'] = isset($v5[$u->id]) ? (int)$v5[$u->id]->count : 0;
+            $data['V6'] = isset($v6[$u->id]) ? (int)$v6[$u->id]->count : 0;
 
-            $warning = ($data['V1'] + $data['V2'] + $data['V3'] + $data['V4'] + $data['V5']) > 0;
+            $warning = ($data['V1'] + $data['V2'] + $data['V3'] + $data['V4'] + $data['V5'] + $data['V6']) > 0;
             if ($htmlouput) {
                 // Output a icon of a moodle warning or OK sign.
                 if ($warning) {

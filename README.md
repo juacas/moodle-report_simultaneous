@@ -13,6 +13,7 @@ The report performs the following searches:
 - User visits in any part of the entire server (includes other courses).
 - Instant messages sent by each user.
 - Actions performed on messages by each user. For example: delete, read, write instant messages.
+- Messages sent to conversations with other analyzed users.
 - Different IPs used by a user.
 
 The plugin does not give details of the detected actions, it only gives the number of detected events.
