@@ -120,6 +120,16 @@ function report_simultaneous_get_common_log_variables() {
 
     return array($uselegacyreader, $useinternalreader, $minloginternalreader, $logtable);
 }
+function report_simultaneous_get_mod_sql($mods) {
+    global $DB;
+    if (count($mods) > 0) {
+        list($modinsql, $modparams) = $DB->get_in_or_equal($mods, SQL_PARAMS_NAMED, 'safemodules', true);
+    } else {
+        $modinsql = "IS NOT NULL";
+        $modparams = [];
+    }
+    return [$modinsql, $modparams];
+}
 /**
  * Returns a list of users who have viewed any safemodules in a time windwow.
  */
@@ -133,7 +143,7 @@ function report_simultaneous_get_users_with_activity($course, $safemodules, $sta
     $params['startdate'] = $startdate;
     $params['enddate'] = $enddate;
     // Params for query the module list.
-    list($sqlin, $inparams) = $DB->get_in_or_equal($safemodules, SQL_PARAMS_NAMED, 'safemodules', true);
+    list($sqlin, $inparams) = report_simultaneous_get_mod_sql($safemodules);
     $params = array_merge($params, $inparams);
 
     $sql = "SELECT DISTINCT userid
@@ -188,12 +198,7 @@ function report_simultaneous_get_users_with_activity_other($course, $safemodules
     list($uselegacyreader, $useinternalreader, $minloginternalreader, $logtable) = report_simultaneous_get_common_log_variables();
     $params = array();
     // Param for safemodules query.
-    if (empty($safemodules)) {
-        $safemodulesinsql = '';
-        $inparamssafemodules = array();
-    } else {
-        list($safemodulesinsql, $inparamssafemodules) = $DB->get_in_or_equal($safemodules, SQL_PARAMS_NAMED, 'safemodules', false);
-    }   
+    list($safemodulesinsql, $inparamssafemodules) = report_simultaneous_get_mod_sql($safemodules);
     // Param for user query.
     list($usersinsql, $inparams) = $DB->get_in_or_equal($userswithactivity, SQL_PARAMS_NAMED, 'users', true);
     $params = array_merge($params, $inparamssafemodules, $inparams);
