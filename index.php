@@ -170,7 +170,8 @@ $messageactionsstr = get_string('messageactions_column', 'report_simultaneous');
 $messagesentconversation = get_string('messagesentconversation_column', 'report_simultaneous');
 $ipsstr = get_string('ips_column', 'report_simultaneous');
 
-$headers = array("", $statusstr, get_string('user'), $incoursestr, $insitestr, $messagesentstr, $messageactionsstr, $messagesentconversation, $ipsstr);
+$headers = array("", $statusstr, get_string('user'),
+                $incoursestr, $insitestr, $messagesentstr, $messageactionsstr, $ipsstr, $messagesentconversation);
 $headershelp = [null,
                 new \help_icon('status_column', 'report_simultaneous'),
                 null,
@@ -178,8 +179,9 @@ $headershelp = [null,
                 new \help_icon('insite_column', 'report_simultaneous'),
                 new \help_icon('messagesent_column', 'report_simultaneous'),
                 new \help_icon('messageactions_column', 'report_simultaneous'),
+                new \help_icon('ips_column', 'report_simultaneous'),
                 new \help_icon('messagesentconversation_column', 'report_simultaneous'),
-                new \help_icon('ips_column', 'report_simultaneous')];
+                ];
 $columns = array('photo', 'warning', 'fullname', 'V1', 'V2', 'V3', 'V4', 'V5', 'V6');
 $table = report_simultaneous_create_table($url, $course, $columns, $headers, $headershelp, $download);
 

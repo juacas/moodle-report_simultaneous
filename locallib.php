@@ -181,7 +181,7 @@ function report_simultaneous_get_users_with_multiple_ips($userswithactivity, $st
                AND timecreated <= :enddate
                AND userid $usersinsql
           GROUP BY userid
-            HAVING count > 1";
+            HAVING COUNT(DISTINCT ip) > 1";
 
     $users = $DB->get_records_sql($sql, $params);
     return $users;
