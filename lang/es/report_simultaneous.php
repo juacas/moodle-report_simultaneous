@@ -31,8 +31,8 @@
  $string['pluginname'] = 'Actividades simultáneas';
  $string['refmodules'] = 'Actividades de referencia';
  $string['refmodules_help'] = 'Las actividades seleccionadas serán usadas como referencia para analizar si los usuarios tienen actividades simultáneas en OTRAS actividades. Si se seleccionan actividades de referencia se analizarán a los usuarios que han participado en estas actividades y se buscará en las OTRAS actividaes. Si no se selecciona ninguna actividad de referencia, se compararán todas las actividades del curso y todos los usuarios.';
- $string['reportfor'] = 'Informe de actividades simultáneas para {$a}';
- $string['reportfor_help'] = 'Este informe mostrará los usuarios que tienen actividades simultáneas con las actividades seleccionadas. Si sospechas que algunos usuarios están haciendo trampas, puedes comprobar los logs de las actividades seleccionadas para ver si están haciendo algo mal o solicitar al soporte un análisis más profundo.';
+ $string['reportfor'] = 'Informe de actividades simultáneas';
+ $string['reportfor_help'] = 'Este informe mostrará los usuarios que tienen actividades simultáneas con las actividades seleccionadas durante un periodo de tiempo. Si sospecha que algunos usuarios están haciendo trampas, puede comprobar los logs de las actividades seleccionadas para ver si están haciendo algo mal o solicitar a su administrador de Moodle un análisis más profundo.';
  $string['showokusers'] = 'Mostrar usuarios sin actividades simultáneas';
  $string['showokusers_help'] = 'Si se selecciona, se mostrarán todos los usuarios del curso incluyendo a los usuarios que no tienen ninguna actividad simultánea detectada.';
  $string['simultaneousreport'] = 'Actividades simultáneas';
