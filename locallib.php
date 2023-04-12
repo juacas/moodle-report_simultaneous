@@ -123,7 +123,7 @@ function report_simultaneous_get_common_log_variables() {
 function report_simultaneous_get_mod_sql($mods) {
     global $DB;
     if (count($mods) > 0) {
-        list($modinsql, $modparams) = $DB->get_in_or_equal($mods, SQL_PARAMS_NAMED, 'safemodules', true);
+        list($modinsql, $modparams) = $DB->get_in_or_equal($mods, SQL_PARAMS_NAMED, 'safemodules', false);
     } else {
         $modinsql = "IS NOT NULL";
         $modparams = [];
@@ -145,12 +145,19 @@ function report_simultaneous_get_users_with_activity($course, $safemodules, $sta
     // Params for query the module list.
     list($sqlin, $inparams) = report_simultaneous_get_mod_sql($safemodules);
     $params = array_merge($params, $inparams);
-
+    $limittime = '';
+    if ($startdate) {
+        $limittime .= ' AND timecreated >= :startdate ';
+        $params['startdate'] = $startdate;
+    }
+    if ($enddate) {
+        $limittime .= ' AND timecreated < :enddate ';
+        $params['enddate'] = $enddate;
+    }
     $sql = "SELECT DISTINCT userid
               FROM {" . $logtable . "}
-             WHERE timecreated >= :startdate
-               AND timecreated <= :enddate
-               AND contextinstanceid $sqlin";
+             WHERE contextinstanceid $sqlin
+             $limittime";
 
     $users = $DB->get_records_sql($sql, $params);
 
@@ -169,17 +176,23 @@ function report_simultaneous_get_users_with_multiple_ips($userswithactivity, $st
     list($uselegacyreader, $useinternalreader, $minloginternalreader, $logtable) = report_simultaneous_get_common_log_variables();
 
     $params = array();
-    $params['startdate'] = $startdate;
-    $params['enddate'] = $enddate;
+    $limittime = '';
+    if ($startdate) {
+        $limittime .= ' AND timecreated >= :startdate ';
+        $params['startdate'] = $startdate;
+    }
+    if ($enddate) {
+        $limittime .= ' AND timecreated < :enddate ';
+        $params['enddate'] = $enddate;
+    }
     // Param for user query.
     list($usersinsql, $inparams) = $DB->get_in_or_equal($userswithactivity, SQL_PARAMS_NAMED, 'users', true);
     $params = array_merge($params, $inparams);
 
     $sql = "SELECT DISTINCT userid, COUNT(DISTINCT ip) as count
               FROM {" . $logtable . "}
-             WHERE timecreated >= :startdate
-               AND timecreated <= :enddate
-               AND userid $usersinsql
+             WHERE userid $usersinsql
+             $limittime
           GROUP BY userid
             HAVING COUNT(DISTINCT ip) > 1";
 
@@ -223,6 +236,7 @@ function report_simultaneous_get_users_with_activity_other($course, $safemodules
                AND crud = 'r'
                AND contextinstanceid $safemodulesinsql
                AND userid $usersinsql
+               AND component <> 'core'
                $limittime
           GROUP BY userid";
     $v1 = $DB->get_records_sql($sql, $params);
