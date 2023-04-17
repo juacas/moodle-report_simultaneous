@@ -15,18 +15,16 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Version info
+ * Config the simultaneous report
  *
- * @package    report
- * @subpackage simultaneous
- * @copyright  2023 onwards Juan Pablo de Castro  {@link https://www.uva.es}
- * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ * @package   report_simultaneous
+ * @copyright 2023 Juan Pablo de Castro {@link https://www.uva.es}
+ * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-defined('MOODLE_INTERNAL') || die;
+defined('MOODLE_INTERNAL') || die();
 
-$plugin->version   = 2023041700;             // The current plugin version (Date: YYYYMMDDXX).
-$plugin->release   = '1.0.9';               // Human-friendly version name.
-$plugin->maturity  = MATURITY_STABLE;       // This version's maturity level.
-$plugin->requires  = 2020061500;             // Requires this Moodle version 3.9 and up.
-$plugin->component = 'report_simultaneous'; // Full name of the plugin (used for diagnostics).
+// Setting for the maximum time of the analisys
+$settings->add(new admin_setting_configtext('report_simultaneous/maxtime',
+    get_string('maxtime', 'report_simultaneous'),
+    get_string('maxtime_help', 'report_simultaneous'), 4, PARAM_INT));

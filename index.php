@@ -76,185 +76,180 @@ if (!$uselegacyreader && !$useinternalreader) {
     die();
 }
 
+$downloading = optional_param('download', '', PARAM_ALPHA);
+
+// Start report page.
+if (!$downloading) {
+    // Print the selector dropdown.
+    $pluginname = get_string('pluginname', 'report_simultaneous');
+    echo $OUTPUT->header();
+    // If class report_helper exists, save the selected report.
+    if ($CFG->branch < 4) { // Deprecated Moodle < 4
+        core\report_helper::save_selected_report($id, $url);
+        core\report_helper::print_report_selector($pluginname);
+    }
+    // Print heading with help icon.
+    echo $OUTPUT->heading_with_help(
+        get_string('reportfor', 'report_simultaneous', format_text($course->fullname)),
+        'reportfor',
+        'report_simultaneous'
+    );
+}
 
 // Handle form to filter access logs by date and activity.
-$filterform = new \report_simultaneous\filter_form(null, $course);
+$filterform = new \report_simultaneous\filter_form(null, $course, "get");
 
+// Form processing and displaying is done here.
 if ($filterform->is_cancelled()) {
     $redir = $PAGE->url;
     $redir->remove_params(['startdate', 'enddate', 'refmodules']);
     redirect($redir);
-}
-$filter = $filterform->get_data();
+} else if ($filter = $filterform->get_data()) {
+    if (!$downloading) {
+        // When the form is submitted, and the data is successfully validated
+        $filterform->display();
+    }
 
-
-if ($filter) {
     $refmodules = $filter->refmodules;
     $startdate = $filter->startdate;
     $enddate = $filter->enddate;
     $ssort = $filter->ssort;
     $tdir = $filter->tdir;
     $showokusers = $filter->showokusers;
-} else {
-    $refmodules = optional_param_array('refmodules', [], PARAM_INT);
-    $startdate = optional_param('startdate', time() - 7200, PARAM_INT);
-    $enddate = optional_param('enddate', time(), PARAM_INT);
-    $ssort = optional_param('ssort', 'fullname', PARAM_ALPHANUMEXT);
-    $tdir = optional_param('tdir', 4, PARAM_INT);
-    $showokusers = optional_param('showokusers', 0, PARAM_BOOL);
-}
-// Complement the base url.
-$url->param('startdate', $startdate);
-$url->param('enddate', $enddate);
-$url->param('ssort', $ssort);
-$url->param('tdir', $tdir);
-$url->param('showokusers', $showokusers);
 
-foreach ($refmodules as $mod) {
-    $url->param('refmodules[]', $mod);
-}
-// Set Defaults in the form.
-$filterform->set_data([
-    'refmodules' => $refmodules,
-    'id' => $course->id,
-    'startdate' => $startdate,
-    'enddate' => $enddate,
-    'showokusers' => $showokusers,
-    'ssort' => $ssort,
-    'tdir' => $tdir
-]);
-$PAGE->set_url($url);
-$perpage = SHOW_ALL_PAGE_SIZE;
-
-$modinfo = get_fast_modinfo($course);
-// Check modules selected.
-foreach ($refmodules as $modid) {
-    if (!array_key_exists($modid, $modinfo->cms)) {
-        throw new moodle_exception('invalidadtivity');
+    // Complement the base url.
+    if (is_int($enddate)) {
+        // Extract date parts.
+        $enddateobj = new DateTime();
+        $enddateobj->setTimestamp($enddate);
+        $url->param('enddate[month]', (int) $enddateobj->format('m'));
+        $url->param('enddate[day]', (int) $enddateobj->format('d'));
+        $url->param('enddate[year]', (int) $enddateobj->format('Y'));
+        $url->param('enddate[hour]', (int) $enddateobj->format('H'));
+        $url->param('enddate[minute]', (int) $enddateobj->format('i'));
     }
-}
-
-// Trigger a report viewed event.
-$event = \report_simultaneous\event\report_viewed::create(array(
-    'context' => $context,
-    'other' => array(
-        'refmodules' => $refmodules,
-        'startdate' => $startdate,
-        'enddate' => $enddate,
-        'courseid' => $course->id
-    )
-));
-
-$event->trigger();
-
-// Get enrolled users in course.
-$users = get_enrolled_users($context, '', 0, 'u.*', null, 0, 0, false);
-// Get users with activity in selected modules.
-// If no refmodules check all enrolled users.
-if (empty($refmodules)) {
-    $userstolist = array_keys($users);
-} else {
-    $userstolist = report_simultaneous_get_users_with_activity($course, $refmodules, $startdate, $enddate);
-}
-
-
-$download = optional_param('download', '', PARAM_ALPHA);
-
-
-// Define the table.
-$statusstr = get_string('status_column', 'report_simultaneous');
-$incoursestr = get_string('incourse_column', 'report_simultaneous');
-$insitestr = get_string('insite_column', 'report_simultaneous');
-$messagesentstr = get_string('messagesent_column', 'report_simultaneous');
-$messageactionsstr = get_string('messageactions_column', 'report_simultaneous');
-$messagesentconversation = get_string('messagesentconversation_column', 'report_simultaneous');
-$ipsstr = get_string('ips_column', 'report_simultaneous');
-
-$headers = array("", $statusstr, get_string('user'),
-                $incoursestr, $insitestr, $messagesentstr, $messageactionsstr, $ipsstr, $messagesentconversation);
-$headershelp = [null,
-                new \help_icon('status_column', 'report_simultaneous'),
-                null,
-                new \help_icon('incourse_column', 'report_simultaneous'),
-                new \help_icon('insite_column', 'report_simultaneous'),
-                new \help_icon('messagesent_column', 'report_simultaneous'),
-                new \help_icon('messageactions_column', 'report_simultaneous'),
-                new \help_icon('ips_column', 'report_simultaneous'),
-                new \help_icon('messagesentconversation_column', 'report_simultaneous'),
-                ];
-$columns = array('photo', 'warning', 'fullname', 'V1', 'V2', 'V3', 'V4', 'V5', 'V6');
-$table = report_simultaneous_create_table($url, $course, $columns, $headers, $headershelp, $download);
-
-// Start report page.
-if (!$table->is_downloading()) {
-    // Print the selector dropdown.
-    $pluginname = get_string('pluginname', 'report_simultaneous');
-    echo $OUTPUT->header();
-    // If class report_helper exists, save the selected report.
-    if (class_exists('core\report_helper')) { // Moodle >= 3.10
-        core\report_helper::save_selected_report($id, $url);
-        core\report_helper::print_report_selector($pluginname);
+    if (is_int($startdate)) {
+        // Extract date parts.
+        $startdateobj = new DateTime();
+        $startdateobj->setTimestamp($startdate);
+        $url->param('startdate[month]', (int) $startdateobj->format('m'));
+        $url->param('startdate[day]', (int) $startdateobj->format('d'));
+        $url->param('startdate[year]', (int) $startdateobj->format('Y'));
+        $url->param('startdate[hour]', (int) $startdateobj->format('H'));
+        $url->param('startdate[minute]', (int) $startdateobj->format('i'));
     }
-    // Print heading with help icon.
-    echo $OUTPUT->heading_with_help(get_string('reportfor', 'report_simultaneous', format_text($course->fullname)),
-                                               'reportfor', 'report_simultaneous');
-    // Print the filter form.
+    $url->param('ssort', $ssort);
+    $url->param('tdir', $tdir);
+    $url->param('showokusers', $showokusers);
+    // Add sesskey.
+    $url->param('sesskey', sesskey());
+    $url->param('_qf__report_simultaneous_filter_form', 1);
+
+    foreach ($refmodules as $mod) {
+        $url->param('refmodules[]', $mod);
+    }
+    $PAGE->set_url($url);
+
+    $table = report_simultaneous_define_table($url, $course, $downloading);
+    $perpage = SHOW_ALL_PAGE_SIZE;
+
+    $modinfo = get_fast_modinfo($course);
+    // Check modules selected.
+    foreach ($refmodules as $modid) {
+        if (!array_key_exists($modid, $modinfo->cms)) {
+            throw new moodle_exception('invalidadtivity');
+        }
+    }
+
+    // Trigger a report viewed event.
+    $event = \report_simultaneous\event\report_viewed::create(
+        array(
+            'context' => $context,
+            'other' => array(
+                'refmodules' => $refmodules,
+                'startdate' => $startdate,
+                'enddate' => $enddate,
+                'courseid' => $course->id
+            )
+        )
+    );
+
+    $event->trigger();
+
+    // Get enrolled users in course.
+    $users = get_enrolled_users($context, '', 0, 'u.*', null, 0, 0, false);
+    // Get users with activity in selected modules.
+    // If no refmodules check all enrolled users.
+    if (empty($refmodules)) {
+        $userstolist = array_keys($users);
+    } else {
+        $userstolist = report_simultaneous_get_users_with_activity($course, $refmodules, $startdate, $enddate);
+    }
+
+    $checkboxes = empty($CFG->messaging);
+    $htmlouput = $table->is_downloading() == 'html' || $table->is_downloading() == false;
+
+    // Generate the report data.
+    $dataset = report_simultaneous_get_data($course, $table, $refmodules, $users, $userstolist, $startdate, $enddate, $showokusers, $checkboxes, $htmlouput);
+    // Sort dataset by field $fieldname.
+    if ($ssort) {
+        $columarr = array_column($dataset, $ssort);
+        if (count($columarr)) {
+            array_multisort(array_column($dataset, $ssort), $tdir == 4 ? SORT_ASC : SORT_DESC, $dataset);
+        }
+    }
+
+    if (!$table->is_downloading()) {
+        echo '<div id="simultaneousreport">' . "\n";
+    }
+    // Add data to table and output it.
+    foreach ($dataset as $data) {
+        $table->add_data_keyed($data);
+    }
+    $table->finish_output();
+
+    if (!$table->is_downloading()) {
+        if (!empty($CFG->messaging)) {
+            echo '<div>' . "\n";
+            // Bulk action form.
+            echo '<form action="' . $CFG->wwwroot . '/user/action_redir.php" method="post" id="buform">' . "\n";
+            echo '<input type="hidden" name="id" value="' . $id . '" />' . "\n";
+            echo '<input type="hidden" name="returnto" value="' . s($PAGE->url) . '" />' . "\n";
+            echo '<input type="hidden" name="sesskey" value="' . sesskey() . '" />' . "\n";
+            echo '</div>' . "\n";
+
+            echo '<div class="py-3">';
+            echo html_writer::label(get_string('withselectedusers'), 'formactionid');
+            $displaylist['#messageselect'] = get_string('messageselectadd');
+            $withselectedparams = array(
+                'id' => 'formactionid',
+                'data-action' => 'toggle',
+                'data-togglegroup' => 'simultaneous-table',
+                'data-toggle' => 'action',
+                'disabled' => true
+            );
+            echo html_writer::select($displaylist, 'formaction', '', array('' => 'choosedots'), $withselectedparams);
+            echo '</div>' . "\n";
+            echo '</form>' . "\n";
+
+            $options = new stdClass();
+            $options->courseid = $course->id;
+            $options->noteStateNames = note_get_state_names();
+            $options->stateHelpIcon = $OUTPUT->help_icon('publishstate', 'notes');
+            $PAGE->requires->js_call_amd('report_simultaneous/simultaneous', 'init', [$options]);
+        }
+        echo '</div>' . "\n";
+    }
+
+} else {
+    // This branch is executed if the form is submitted but the data doesn't
+    // validate and the form should be redisplayed or on the first display of the form.
+
+    // Set anydefault data (if any).
+    //$filterform->set_data($toform);
+
+    // Display the form.
     $filterform->display();
 }
 
-// Generate the report data.
-$checkboxes = empty($CFG->messaging);
-$htmlouput = $table->is_downloading() == 'html' || $table->is_downloading() == false;
-
-$dataset = report_simultaneous_get_data($course, $table, $refmodules, $users, $userstolist, $startdate, $enddate, $showokusers, $checkboxes, $htmlouput);
-// Sort dataset by field $fieldname.
-if ($ssort) {
-    $columarr = array_column($dataset, $ssort);
-    if (count($columarr)) {
-        array_multisort(array_column($dataset, $ssort), $tdir == 4 ? SORT_ASC : SORT_DESC, $dataset);
-    }
-}
-
-if (!$table->is_downloading()) {
-    echo '<div id="simultaneousreport">' . "\n";
-}
-// Add data to table and output it.
-foreach ($dataset as $data) {
-    $table->add_data_keyed($data);
-}
-$table->finish_output();
-
-if (!$table->is_downloading()) {
-    if (!empty($CFG->messaging)) {
-        echo '<div>' . "\n";
-        // Bulk action form.
-        echo '<form action="' . $CFG->wwwroot . '/user/action_redir.php" method="post" id="buform">' . "\n";
-        echo '<input type="hidden" name="id" value="' . $id . '" />' . "\n";
-        echo '<input type="hidden" name="returnto" value="' . s($PAGE->url) . '" />' . "\n";
-        echo '<input type="hidden" name="sesskey" value="' . sesskey() . '" />' . "\n";
-        echo '</div>' . "\n";
-
-        echo '<div class="py-3">';
-        echo html_writer::label(get_string('withselectedusers'), 'formactionid');
-        $displaylist['#messageselect'] = get_string('messageselectadd');
-        $withselectedparams = array(
-            'id' => 'formactionid',
-            'data-action' => 'toggle',
-            'data-togglegroup' => 'simultaneous-table',
-            'data-toggle' => 'action',
-            'disabled' => true
-        );
-        echo html_writer::select($displaylist, 'formaction', '', array('' => 'choosedots'), $withselectedparams);
-        echo '</div>' . "\n";
-        echo '</form>' . "\n";
-
-        $options = new stdClass();
-        $options->courseid = $course->id;
-        $options->noteStateNames = note_get_state_names();
-        $options->stateHelpIcon = $OUTPUT->help_icon('publishstate', 'notes');
-        $PAGE->requires->js_call_amd('report_simultaneous/simultaneous', 'init', [$options]);
-    }
-    echo '</div>' . "\n";
-
-    echo $OUTPUT->footer();
-}
+echo $OUTPUT->footer();

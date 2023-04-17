@@ -38,12 +38,16 @@
  $string['simultaneousreport'] = 'Actividades simultáneas';
  $string['status_column'] = 'Estado';
  $string['status_column_help'] = 'La combinación de las comprobaciones para este usuario. Si el usuario tiene actividades simultáneas, el estado será "AVISO". Si el usuario no tiene actividades simultáneas, el estado será "OK".';
+ $string['starttimebeforeendtime'] = 'La fecha de inicio debe ser anterior a la fecha de fin';
+ $string['totaltimeexceeded'] = 'El tiempo total de las actividades seleccionadas debe ser menor a {$a}';
  $string['incourse_column'] = 'En curso';
  $string['incourse_column_help'] = 'El número de vistas de actividades para este usuario en el curso. Este número es la suma de las vistas de las actividades distintas a las seleccionadas en el campo "Actividades de referencia".';
  $string['insite_column'] = 'En el sitio';
  $string['insite_column_help'] = 'El número de vistas de las actividades de este usuario en el sitio. Este número es la suma de las vistas de las actividades distintas a la seleccionada en el campo "Actividades de referencia".';
  $string['ips_column'] = 'IPs';
  $string['ips_column_help'] = 'La lista de IPs usadas por este usuario. Esta lista es el recuento de las IPs (si es mayor que una) utilizadas por el usuario en la ventana de tiempo de la consulta. Normalmente denota que el usuario utilizó más de un dispositivo para acceder al servidor, pero también puede significar que el usuario está utilizando un proxy dinámico o que su dispositivo cambió la dirección de Internet.';
+ $string['maxtime'] = 'Máximo tiempo';
+ $string['maxtime_help'] = 'El tiempo máximo que un análisis puede abarcar.';
  $string['mensajesenviados_columna'] = 'Mensajes enviados';
  $string['messagesent_column_help'] = 'El número de mensajes instantáneos enviados por este usuario. Esto incluye mensajes enviados a otros usuarios y mensajes enviados a grupos. Este número incluye los mensajes enviados al propio usuario.';
  $string['messageactions_column'] = 'Acciones de mensajes';

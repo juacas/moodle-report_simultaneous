@@ -46,9 +46,10 @@ class filter_form extends \moodleform {
 
         $mform->addElement('hidden', 'id');
         $mform->setType('id', PARAM_INT);
+        $mform->setDefault('id', $course->id);
         // Sort params.
         $mform->addElement('hidden', 'ssort');
-        $mform->setType('ssort', PARAM_ALPHA);
+        $mform->setType('ssort', PARAM_ALPHANUM);
         $mform->addElement('hidden', 'tdir');
         $mform->setType('tdir', PARAM_INT);
 
@@ -74,4 +75,18 @@ class filter_form extends \moodleform {
         $mform->addGroup($buttonarray, 'buttonar', '', [' '], false);
     }
 
+    // Validate form data.
+    public function validation($data, $files) {
+        $errors = parent::validation($data, $files);
+        if ($data['startdate'] > $data['enddate']) {
+            $errors['startdate'] = get_string('starttimebeforeendtime', 'report_simultaneous');
+        }
+        // Check if total time is greater than max time.
+        $maxtime = get_config('report_simultaneous', 'maxtime');
+        $totaltime = $data['enddate'] - $data['startdate'];
+        if ($totaltime > $maxtime * 3600) {
+            $errors['enddate'] = get_string('totaltimeexceeded', 'report_simultaneous', $maxtime);
+        }
+        return $errors;
+    }
 }
