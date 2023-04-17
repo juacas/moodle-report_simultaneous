@@ -34,7 +34,6 @@ define('SHOW_ALL_PAGE_SIZE', 5000);
 
 $id = required_param('id', PARAM_INT); // Course id.
 
-$PAGE->set_pagelayout('admin');
 
 if (!$course = $DB->get_record('course', array('id' => $id))) {
     throw new moodle_exception('invalidcourse');
@@ -42,14 +41,15 @@ if (!$course = $DB->get_record('course', array('id' => $id))) {
 
 require_login($course);
 $context = context_course::instance($course->id);
+require_capability('report/simultaneous:view', $context);
 
 $strsimultaneous = get_string('simultaneousreport', 'report_simultaneous');
 $url = new moodle_url('/report/simultaneous/index.php', array('id' => $id));
 
+$PAGE->set_pagelayout('report');
 $PAGE->set_url($url);
 $PAGE->set_title(format_string($course->shortname, true, array('context' => $context)) . ': ' . $strsimultaneous);
 $PAGE->set_heading(format_string($course->fullname, true, array('context' => $context)));
-require_capability('report/simultaneous:view', $context);
 
 // Release session lock.
 \core\session\manager::write_close();
@@ -86,8 +86,8 @@ if (!$downloading) {
     // If class report_helper exists, save the selected report.
     if ($CFG->branch < 4) { // Deprecated Moodle < 4
         core\report_helper::save_selected_report($id, $url);
-        core\report_helper::print_report_selector($pluginname);
     }
+    core\report_helper::print_report_selector($pluginname);
     // Print heading with help icon.
     echo $OUTPUT->heading_with_help(
         get_string('reportfor', 'report_simultaneous', format_text($course->fullname)),

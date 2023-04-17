@@ -164,9 +164,9 @@ function report_simultaneous_get_users_with_activity($course, $safemodules, $sta
     return array_keys($users);
 }
 /**
- * Returns a list of users that has events with more than an ip.
+ * Returns a list of users that have events with more than an ip.
  */
-function report_simultaneous_get_users_with_multiple_ips($userswithactivity, $startdate, $enddate) {
+function report_simultaneous_get_users_with_multiple_ips($userswithactivity, $startdate, $enddate, $aggregated = true) {
     global $DB;
 
     if (count($userswithactivity) == 0) {
@@ -188,13 +188,14 @@ function report_simultaneous_get_users_with_multiple_ips($userswithactivity, $st
     // Param for user query.
     list($usersinsql, $inparams) = $DB->get_in_or_equal($userswithactivity, SQL_PARAMS_NAMED, 'users', true);
     $params = array_merge($params, $inparams);
-
-    $sql = "SELECT DISTINCT userid, COUNT(DISTINCT ip) as count
-              FROM {" . $logtable . "}
-             WHERE userid $usersinsql
+    $select = $aggregated ? "DISTINCT userid, COUNT(DISTINCT ip) as count": "DISTINCT(ip)";
+    $aggregation = $aggregated ? "GROUP BY userid
+            HAVING COUNT(DISTINCT ip) > 1" : "";
+    $sql = "SELECT $select
+            FROM {" . $logtable . "}
+            WHERE userid $usersinsql
              $limittime
-          GROUP BY userid
-            HAVING COUNT(DISTINCT ip) > 1";
+            $aggregation";
 
     $users = $DB->get_records_sql($sql, $params);
     return $users;
@@ -203,7 +204,7 @@ function report_simultaneous_get_users_with_multiple_ips($userswithactivity, $st
  * Returns a list of users who have viewed any module other than safemodules in a time window.
  * @param stdClass $course course object. If null, then all courses are considered.
  */
-function report_simultaneous_get_users_with_activity_other($course, $safemodules, $userswithactivity, $startdate, $enddate) {
+function report_simultaneous_get_users_with_activity_other($course, $safemodules, $userswithactivity, $startdate, $enddate, $aggregated = true) {
     global $DB;
     if (count($userswithactivity) == 0) {
         return array();
@@ -230,8 +231,10 @@ function report_simultaneous_get_users_with_activity_other($course, $safemodules
         $limittime .= ' AND timecreated < :enddate ';
         $params['enddate'] = $enddate;
     }
-    $sql = "SELECT userid, COUNT('x') AS count FROM {" . $logtable . "} l
-             WHERE anonymous = 0
+    $select = $aggregated ? "userid, COUNT('x') AS count" : '*';
+    $aggregation = $aggregated ? "GROUP BY userid" : '';
+    $sql = "SELECT $select FROM {" . $logtable . "} l
+            WHERE anonymous = 0
                $incourse
                AND crud = 'r'
                AND contextinstanceid $safemodulesinsql
@@ -239,7 +242,7 @@ function report_simultaneous_get_users_with_activity_other($course, $safemodules
                AND component <> 'core'
                AND target <> 'report'
                $limittime
-          GROUP BY userid";
+            $aggregation";
     $v1 = $DB->get_records_sql($sql, $params);
     return $v1;
 }
@@ -247,7 +250,7 @@ function report_simultaneous_get_users_with_activity_other($course, $safemodules
  * Returns a list of users who had messaging activity in a time window.
  * Does not use message_user_actions to exclude deleted messages.
  */
-function report_simultaneous_get_users_with_messaging($course, $userswithactivity, $startdate, $enddate) {
+function report_simultaneous_get_users_with_messaging($course, $userswithactivity, $startdate, $enddate, $aggregated = true) {
     global $DB;
     if (count($userswithactivity) == 0) {
         return array();
@@ -267,17 +270,19 @@ function report_simultaneous_get_users_with_messaging($course, $userswithactivit
         $params['enddate'] = $enddate;
     }
     $logtable = 'messages';
-    $sql = "SELECT useridfrom as userid, COUNT('x') AS count FROM {" . $logtable . "} l
+    $select = $aggregated ? "useridfrom as userid, COUNT('x') AS count" : '*';
+    $aggregation = $aggregated ? 'GROUP BY userid' : '';
+    $sql = "SELECT $select FROM {" . $logtable . "} l
             WHERE useridfrom $usersin
             $limittime
-            GROUP BY userid";
+            $aggregation";
     $res = $DB->get_records_sql($sql, $params);
     return $res;
 }
 /**
  * Returns a list of users who had read, deleted or sent messages in a time window.
  */
-function report_simultaneous_get_users_with_message_actions($course, $userswithactivity, $startdate, $enddate) {
+function report_simultaneous_get_users_with_message_actions($course, $userswithactivity, $startdate, $enddate, $aggregated = true) {
     global $DB;
     if (count($userswithactivity) == 0) {
         return array();
@@ -297,17 +302,19 @@ function report_simultaneous_get_users_with_message_actions($course, $userswitha
         $limittime .= ' AND timecreated < :enddate ';
         $params['enddate'] = $enddate;
     }
-    $sql = "SELECT userid as userid, COUNT('x') AS count FROM {" . $logtable . "} l
+    $select = $aggregated ? "userid as userid, COUNT('x') AS count" : '*';
+    $aggregation = $aggregated ? 'GROUP BY userid' : '';
+    $sql = "SELECT $select FROM {" . $logtable . "} l
             WHERE userid $usersin
             $limittime
-            GROUP BY userid";
+            $aggregation";
     $res = $DB->get_records_sql($sql, $params);
     return $res;
 }
 /**
  * Returns a list of users who had sent messages to conversations that include target users, in a time window.
  */
-function report_simultaneous_get_users_sent_message_to_conversations($course, $userswithactivity, $startdate, $enddate) {
+function report_simultaneous_get_users_sent_message_to_conversations($course, $userswithactivity, $startdate, $enddate, $aggregated = true) {
     global $DB;
     if (count($userswithactivity) == 0) {
         return array();
@@ -327,12 +334,14 @@ function report_simultaneous_get_users_sent_message_to_conversations($course, $u
         $limittime .= ' AND m.timecreated < :enddate ';
         $params['enddate'] = $enddate;
     }
-    $sql = "SELECT count('x') as count, useridfrom as userid
+    $select = $aggregated ? "useridfrom as userid, COUNT('x') AS count" : '*';
+    $aggregation = $aggregated ? "GROUP BY m.useridfrom" : "";
+    $sql = "SELECT $select
             FROM {messages} m
             LEFT JOIN {message_conversation_members} c ON m.conversationid = c.conversationid AND m.useridfrom <> c.userid
             WHERE c.userid $usersin
             $limittime
-            GROUP BY m.useridfrom";
+            $aggregation";
     $res = $DB->get_records_sql($sql, $params);
     return $res;
 }
@@ -402,6 +411,35 @@ function report_simultaneous_create_table($url, $course, $columns, $headers, $he
     $table->setup();
     return $table;
 }
+function report_simultaneous_get_indicator($v, $course, $refmodules, $userstolist, $startdate, $enddate, $aggregated = true) {
+    switch($v) {
+        case 'V1':
+            // Get users with activity in other modules in this course.
+            $data = report_simultaneous_get_users_with_activity_other($course, $refmodules, $userstolist, $startdate, $enddate, $aggregated);
+            break;
+        case 'V2':
+            // Get users with activity in other modules in any course.
+            $data = report_simultaneous_get_users_with_activity_other(null, $refmodules, $userstolist, $startdate, $enddate, $aggregated);
+            break;
+        case 'V3':
+            // Get users with messaging activities.
+            $data = report_simultaneous_get_users_with_messaging($course, $userstolist, $startdate, $enddate, $aggregated);
+            break;
+        case 'V4':
+            // Get users with message actions.
+            $data = report_simultaneous_get_users_with_message_actions($course, $userstolist, $startdate, $enddate, $aggregated);
+            break;
+        case 'V5':
+            // Get users with multiple ip addresses.
+            $data = report_simultaneous_get_users_with_multiple_ips($userstolist, $startdate, $enddate, $aggregated);
+            break;
+        case 'V6':
+            // Get users that sent messages to conversations that include target users.
+            $data = report_simultaneous_get_users_sent_message_to_conversations($course, $userstolist, $startdate, $enddate, $aggregated);
+            break;
+    }
+    return $data;
+}
 /**
  * Returns a list of users who had activity in other modules in a time window.
  */
@@ -445,7 +483,26 @@ function report_simultaneous_get_data($course, $table, $refmodules, $users, $use
             $data['V5'] = isset($v5[$u->id]) ? (int)$v5[$u->id]->count : 0;
             $data['V6'] = isset($v6[$u->id]) ? (int)$v6[$u->id]->count : 0;
 
+            
             $warning = ($data['V1'] + $data['V2'] + $data['V3'] + $data['V4'] + $data['V5'] + $data['V6']) > 0;
+
+            // If has capabilitiy simultaneous:adminlisting add links.
+            if (has_capability('report/simultaneous:adminlisting', context_course::instance($course->id))) {
+                foreach (['V1','V2','V3','V4','V5','V6'] as $key) {
+                    if ($data[$key] == 0) {
+                        continue;
+                    }
+                    $url = new moodle_url('/report/simultaneous/adminlist.php', array('id' => $course->id, 
+                                            'userid' => $u->id,
+                                            'v' => $key,
+                                            'startdate' => $startdate,
+                                            'enddate' => $enddate));
+                    foreach ($refmodules as $mod) {
+                        $url->param('refmodules[]', $mod);
+                    }
+                    $data[$key] = html_writer::link($url, $data[$key]);
+                }
+            }
             if ($htmlouput) {
                 // Output a icon of a moodle warning or OK sign.
                 if ($warning) {

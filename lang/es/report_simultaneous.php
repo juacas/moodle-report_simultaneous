@@ -26,6 +26,7 @@
  $string['eventreportviewed'] = 'Informe de uso simultáneo visto';
  $string['nologreaderenabled'] = 'Lector de registro no habilitado';
  $string['simultaneous:view'] = 'Ver informe simultáneo del curso';
+ $string['simultaneous:adminlisting'] = 'Ver listados con detalle de administrador';
  $string['page-report-simultaneous-x'] = 'Cualquier informe simultáneo';
  $string['page-report-simultaneous-index'] = 'Informe de uso simultáneo';
  $string['pluginname'] = 'Actividades simultáneas';

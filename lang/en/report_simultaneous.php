@@ -26,6 +26,7 @@
 $string['eventreportviewed'] = 'simultaneous usage report viewed';
 $string['nologreaderenabled'] = 'No log reader enabled';
 $string['simultaneous:view'] = 'View course simultaneous report';
+$string['simultaneous:adminlisting'] = 'View admin simultaneous reports';
 $string['page-report-simultaneous-x'] = 'Any simultaneous report';
 $string['page-report-simultaneous-index'] = 'Simultaneous usage report';
 $string['pluginname'] = 'Simultaneous activities';

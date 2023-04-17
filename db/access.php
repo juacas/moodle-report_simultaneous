@@ -34,10 +34,18 @@ $capabilities = array(
             'teacher' => CAP_ALLOW,
             'editingteacher' => CAP_ALLOW,
             'manager' => CAP_ALLOW
+            ),
+        'clonepermissionsfrom' => 'coursereport/simultaneous:view'
         ),
-
-        'clonepermissionsfrom' => 'coursereport/simultaneous:view',
-    )
+    'report/simultaneous:adminlisting' => array(
+        'riskbitmask' => RISK_PERSONAL,
+        'captype' => 'read',
+        'contextlevel' => CONTEXT_COURSE,
+        'archetypes' => array(
+            'manager' => CAP_ALLOW
+        ),
+        'clonepermissionsfrom' => 'coursereport/simultaneous:adminlisting'
+    ),
 );
 
 
