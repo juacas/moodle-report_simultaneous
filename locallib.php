@@ -411,6 +411,23 @@ function report_simultaneous_create_table($url, $course, $columns, $headers, $he
     $table->setup();
     return $table;
 }
+/**
+ * Get the data for a given indicator.
+ * V1 Get users with activity in other modules in this course.
+ * V2 Get users with activity in other modules in any course.
+ * V3 Get users with messaging activities.
+ * V4 Get users with message actions.
+ * V5 Get users with multiple ip addresses.
+ * V6 Get users that sent messages to conversations that include target users.
+ * @param string $v   name of the indicator
+ * @param stdClass $course course object
+ * @param array $refmodules array of module cmid
+ * @param array $userstolist array of userids
+ * @param int $startdate timestamp
+ * @param int $enddate timestamp
+ * @param bool $aggregated true if aggregated results are requested.
+ * @return array of data for the indicator
+ */
 function report_simultaneous_get_indicator($v, $course, $refmodules, $userstolist, $startdate, $enddate, $aggregated = true) {
     switch($v) {
         case 'V1':
@@ -445,25 +462,33 @@ function report_simultaneous_get_indicator($v, $course, $refmodules, $userstolis
  */
 function report_simultaneous_get_data($course, $table, $refmodules, $users, $userstolist, $startdate, $enddate, $showokusers, $checkboxes = true, $htmlouput = true) {
     global $OUTPUT;
-    // Get users with activity in other modules in this course.
-    $v1 = report_simultaneous_get_users_with_activity_other($course, $refmodules, $userstolist, $startdate, $enddate);
-    // Get users with activity in other modules in any course.
-    $v2 = report_simultaneous_get_users_with_activity_other(null, $refmodules, $userstolist, $startdate, $enddate);
-    // Get users with messaging activities.
-    $v3 = report_simultaneous_get_users_with_messaging($course, $userstolist, $startdate, $enddate);
-    // Get users with message actions.
-    $v4 = report_simultaneous_get_users_with_message_actions($course, $userstolist, $startdate, $enddate);
-    // Get users with multiple ip addresses.
-    $v5 = report_simultaneous_get_users_with_multiple_ips($userstolist, $startdate, $enddate);
-    // Get users that sent messages to conversations that include target users.
-    $v6 = report_simultaneous_get_users_sent_message_to_conversations($course, $userstolist, $startdate, $enddate);
-
-    // Create the listing.
+    $indicators = ['V1', 'V2', 'V3', 'V4', 'V5', 'V6'];
+    $ind = [];
+    // Collect the data for each indicator.
+    foreach ($indicators as $v) {
+        $ind[$v] = report_simultaneous_get_indicator($v, $course, $refmodules, $userstolist, $startdate, $enddate);
+    }
+    
+    // Create the listing with all the indicators for each user. Fill the gaps with 0..
     $dataset = array();
     foreach ($users as $u) {
-        // Search userid in v1.
-        if ($showokusers || isset($v1[$u->id]) || isset($v2[$u->id]) || isset($v3[$u->id]) || isset($v4[$u->id]) || isset($v5[$u->id])) {
-            $data = get_object_vars($u);
+        // Search userid in v1, v2, v3, v4, v5, v6.
+        $hasdata = false;
+        $warning = false;
+        foreach ($indicators as $v) {
+            $userind = $ind[$v];
+            if (isset($userind[$u->id])) {
+                $data[$v] = (int)$ind[$v][$u->id]->count;
+                $hasdata = true;
+            } else {
+                $data[$v] = 0;
+            }
+            if ($data[$v] > 0) {
+                $warning = true;
+            }
+        }
+
+        if ($showokusers || $hasdata) {
             // Add user photo.
             if ( $htmlouput ) {
                 $data['photo'] = $OUTPUT->user_picture($u, array('courseid' => $course->id));
@@ -475,20 +500,11 @@ function report_simultaneous_get_data($course, $table, $refmodules, $users, $use
                 $data['photo'] = "";
                 $data['fullname'] = fullname($u, true);
             }
-
-            $data['V1'] = isset($v1[$u->id]) ? (int)$v1[$u->id]->count : 0;
-            $data['V2'] = isset($v2[$u->id]) ? (int)$v2[$u->id]->count : 0;
-            $data['V3'] = isset($v3[$u->id]) ? (int)$v3[$u->id]->count : 0;
-            $data['V4'] = isset($v4[$u->id]) ? (int)$v4[$u->id]->count : 0;
-            $data['V5'] = isset($v5[$u->id]) ? (int)$v5[$u->id]->count : 0;
-            $data['V6'] = isset($v6[$u->id]) ? (int)$v6[$u->id]->count : 0;
-
-            
-            $warning = ($data['V1'] + $data['V2'] + $data['V3'] + $data['V4'] + $data['V5'] + $data['V6']) > 0;
+           
 
             // If has capabilitiy simultaneous:adminlisting add links.
             if (has_capability('report/simultaneous:adminlisting', context_course::instance($course->id))) {
-                foreach (['V1','V2','V3','V4','V5','V6'] as $key) {
+                foreach ($indicators as $key) {
                     if ($data[$key] == 0) {
                         continue;
                     }
