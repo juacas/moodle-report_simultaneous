@@ -16,7 +16,7 @@ The report performs the following searches:
 - Messages sent to conversations with other analyzed users.
 - Different IPs used by a user.
 
-The plugin does not give details of the detected actions, it only gives the number of detected events.
+The plugin does not give details of the detected actions, it only gives the counting of detected events.
 
 If a teacher suspects inappropriate activities, he/she can make a more detailed analysis of his/her course logs or ask the administrators for help for further investigation.
 

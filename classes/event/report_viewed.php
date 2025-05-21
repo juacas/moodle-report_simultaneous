@@ -71,15 +71,6 @@ class report_viewed extends \core\event\base {
         return "The user with id '$this->userid' viewed the course simultaneous report for the course with id '$this->courseid'.";
     }
 
-    /**
-     * Return the legacy event log data.
-     *
-     * @return array
-     */
-    protected function get_legacy_logdata() {
-        return array($this->courseid, "course", "report simultaneous", "report/simultaneous/index.php?id=" . $this->courseid,
-                $this->courseid);
-    }
 
     /**
      * Returns relevant URL.

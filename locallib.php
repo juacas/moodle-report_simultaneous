@@ -120,10 +120,16 @@ function report_simultaneous_get_common_log_variables() {
 
     return array($uselegacyreader, $useinternalreader, $minloginternalreader, $logtable);
 }
-function report_simultaneous_get_mod_sql($mods) {
+/**
+ * Get the sql for selecting the list of coursemodules.
+ * @param array $mods
+ * @param boolean $equal whether to negate the query
+ * @return array
+ */
+function report_simultaneous_get_mod_sql($mods, $equal = false) {
     global $DB;
     if (count($mods) > 0) {
-        list($modinsql, $modparams) = $DB->get_in_or_equal($mods, SQL_PARAMS_NAMED, 'safemodules', false);
+        list($modinsql, $modparams) = $DB->get_in_or_equal($mods, SQL_PARAMS_NAMED, 'safemodules', $equal);
     } else {
         $modinsql = "IS NOT NULL";
         $modparams = [];
@@ -142,8 +148,8 @@ function report_simultaneous_get_users_with_activity($course, $safemodules, $sta
     $params['courseid'] = $course->id;
     $params['startdate'] = $startdate;
     $params['enddate'] = $enddate;
-    // Params for query the module list.
-    list($sqlin, $inparams) = report_simultaneous_get_mod_sql($safemodules);
+    // Params for query the users that visitted any module in the list.
+    list($sqlin, $inparams) = report_simultaneous_get_mod_sql($safemodules, true);
     $params = array_merge($params, $inparams);
     $limittime = '';
     if ($startdate) {
@@ -312,7 +318,7 @@ function report_simultaneous_get_users_with_message_actions($course, $userswitha
     return $res;
 }
 /**
- * Returns a list of users who had sent messages to conversations that include target users, in a time window.
+ * Returns a list of messages sent messages to conversations that include target users, in a time window.
  */
 function report_simultaneous_get_users_sent_message_to_conversations($course, $userswithactivity, $startdate, $enddate, $aggregated = true) {
     global $DB;
@@ -338,7 +344,7 @@ function report_simultaneous_get_users_sent_message_to_conversations($course, $u
     $aggregation = $aggregated ? "GROUP BY m.useridfrom" : "";
     $sql = "SELECT $select
             FROM {messages} m
-            LEFT JOIN {message_conversation_members} c ON m.conversationid = c.conversationid AND m.useridfrom <> c.userid
+            LEFT JOIN {message_conversation_members} c ON m.conversationid = c.conversationid AND  m.useridfrom <> c.userid
             WHERE c.userid $usersin
             $limittime
             $aggregation";
@@ -348,26 +354,20 @@ function report_simultaneous_get_users_sent_message_to_conversations($course, $u
 function report_simultaneous_define_table($url, $course, $download) {
     // Define the table.
     $statusstr = get_string('status_column', 'report_simultaneous');
-    $incoursestr = get_string('incourse_column', 'report_simultaneous');
-    $insitestr = get_string('insite_column', 'report_simultaneous');
-    $messagesentstr = get_string('messagesent_column', 'report_simultaneous');
-    $messageactionsstr = get_string('messageactions_column', 'report_simultaneous');
-    $messagesentconversation = get_string('messagesentconversation_column', 'report_simultaneous');
-    $ipsstr = get_string('ips_column', 'report_simultaneous');
 
-    $headers = array("", $statusstr, get_string('user'),
-                    $incoursestr, $insitestr, $messagesentstr, $messageactionsstr, $ipsstr, $messagesentconversation);
+    $headers = array("", $statusstr, get_string('user'));
+    $indicators = report_simultaneous_get_indicators();
     $headershelp = [null,
                     new \help_icon('status_column', 'report_simultaneous'),
-                    null,
-                    new \help_icon('incourse_column', 'report_simultaneous'),
-                    new \help_icon('insite_column', 'report_simultaneous'),
-                    new \help_icon('messagesent_column', 'report_simultaneous'),
-                    new \help_icon('messageactions_column', 'report_simultaneous'),
-                    new \help_icon('ips_column', 'report_simultaneous'),
-                    new \help_icon('messagesentconversation_column', 'report_simultaneous'),
-                    ];
-    $columns = array('photo', 'warning', 'fullname', 'V1', 'V2', 'V3', 'V4', 'V5', 'V6');
+                    null];
+    $columns = array('photo', 'warning', 'fullname');//, 'V1', 'V2', 'V3', 'V4', 'V5', 'V6');
+    // Add help:icons for each indicator.
+    foreach ($indicators as $key=>$indicator) {
+        $headershelp[] = new \help_icon($indicator->name . '_column', 'report_simultaneous');
+        $headers[] = get_string($indicator->name . '_column', 'report_simultaneous');
+        $columns[] = $key;
+    }
+    
     $table = report_simultaneous_create_table($url, $course, $columns, $headers, $headershelp, $download);
     return $table;
 }
@@ -422,57 +422,79 @@ function report_simultaneous_create_table($url, $course, $columns, $headers, $he
  * @param string $v   name of the indicator
  * @param stdClass $course course object
  * @param array $refmodules array of module cmid
- * @param array $userstolist array of userids
+ * @param array $userstoanalyse array of userids
  * @param int $startdate timestamp
  * @param int $enddate timestamp
  * @param bool $aggregated true if aggregated results are requested.
  * @return array of data for the indicator
  */
-function report_simultaneous_get_indicator($v, $course, $refmodules, $userstolist, $startdate, $enddate, $aggregated = true) {
+function report_simultaneous_get_indicator($v, $course, $refmodules, $userstoanalyse, $userstolist, $startdate, $enddate, $aggregated = true) {
     switch($v) {
         case 'V1':
             // Get users with activity in other modules in this course.
-            $data = report_simultaneous_get_users_with_activity_other($course, $refmodules, $userstolist, $startdate, $enddate, $aggregated);
+            $data = report_simultaneous_get_users_with_activity_other($course, $refmodules, $userstoanalyse, $startdate, $enddate, $aggregated);
             break;
         case 'V2':
             // Get users with activity in other modules in any course.
-            $data = report_simultaneous_get_users_with_activity_other(null, $refmodules, $userstolist, $startdate, $enddate, $aggregated);
+            $data = report_simultaneous_get_users_with_activity_other(null, $refmodules, $userstoanalyse, $startdate, $enddate, $aggregated);
             break;
         case 'V3':
             // Get users with messaging activities.
-            $data = report_simultaneous_get_users_with_messaging($course, $userstolist, $startdate, $enddate, $aggregated);
+            $data = report_simultaneous_get_users_with_messaging($course, $userstoanalyse, $startdate, $enddate, $aggregated);
             break;
         case 'V4':
             // Get users with message actions.
-            $data = report_simultaneous_get_users_with_message_actions($course, $userstolist, $startdate, $enddate, $aggregated);
+            $data = report_simultaneous_get_users_with_message_actions($course, $userstoanalyse, $startdate, $enddate, $aggregated);
             break;
         case 'V5':
             // Get users with multiple ip addresses.
-            $data = report_simultaneous_get_users_with_multiple_ips($userstolist, $startdate, $enddate, $aggregated);
+            $data = report_simultaneous_get_users_with_multiple_ips($userstoanalyse, $startdate, $enddate, $aggregated);
             break;
         case 'V6':
             // Get users that sent messages to conversations that include target users.
-            $data = report_simultaneous_get_users_sent_message_to_conversations($course, $userstolist, $startdate, $enddate, $aggregated);
+            $data = report_simultaneous_get_users_sent_message_to_conversations($course, $userstoanalyse, $startdate, $enddate, $aggregated);
             break;
     }
     return $data;
+}
+/**
+ * Return an array with the available indicators.
+ * @return array key => string
+ */
+function report_simultaneous_get_indicators($onlyenabled = true) {
+    $config = get_config('report_simultaneous', 'indicators');
+    // Split config into keys.
+    $keys = explode(',', $config);
+    
+    $indicators = array(
+        'V1' => (object)[ 'name'=> 'incourse' ],
+        'V2' => (object)[ 'name'=> 'insite'],
+        'V3' => (object)[ 'name'=> 'messagesent'],
+        'V4' => (object)[ 'name'=> 'messageactions'],
+        'V5' => (object)[ 'name'=> 'ips'],
+        'V6' => (object)[ 'name'=> 'messagesentconversation'],
+    );
+    if ($onlyenabled) {
+        $indicators = array_intersect_key($indicators, array_combine($keys, $keys));
+    }
+    return $indicators;
 }
 /**
  * Returns a list of users who had activity in other modules in a time window.
  */
 function report_simultaneous_get_data($course, $table, $refmodules, $users, $userstolist, $startdate, $enddate, $showokusers, $checkboxes = true, $htmlouput = true) {
     global $OUTPUT;
-    $indicators = ['V1', 'V2', 'V3', 'V4', 'V5', 'V6'];
+    $indicators = array_keys(report_simultaneous_get_indicators());
     $ind = [];
     // Collect the data for each indicator.
     foreach ($indicators as $v) {
-        $ind[$v] = report_simultaneous_get_indicator($v, $course, $refmodules, $userstolist, $startdate, $enddate);
+        $ind[$v] = report_simultaneous_get_indicator($v, $course, $refmodules, $userstolist, $userstolist, $startdate, $enddate);
     }
     
     // Create the listing with all the indicators for each user. Fill the gaps with 0..
     $dataset = array();
     foreach ($users as $u) {
-        // Search userid in v1, v2, v3, v4, v5, v6.
+        // Search userid in indicators.
         $hasdata = false;
         $warning = false;
         foreach ($indicators as $v) {

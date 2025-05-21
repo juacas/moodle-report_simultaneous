@@ -15,7 +15,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * simultaneous report
+ * Simultaneous report administration recorrds view.
  *
  * @package    report
  * @subpackage simultaneous
@@ -42,8 +42,16 @@ $startdate = required_param('startdate', PARAM_INT);
 $enddate = required_param('enddate', PARAM_INT);
 $refmodules = optional_param_array('refmodules', [], PARAM_INT);
 
+// Get enrolled users in course.
+$users = get_enrolled_users($context, '', 0, 'u.*', null, 0, 0, false);
+
+if (empty($refmodules)) {
+    $userstoanalyse = array_keys($users);
+} else {
+    $userstoanalyse = report_simultaneous_get_users_with_activity($course, $refmodules, $startdate, $enddate);
+}
 // Export as csv the records.
-$data = report_simultaneous_get_indicator($v, $course, $refmodules, [$userid], $startdate, $enddate, false);
+$data = report_simultaneous_get_indicator($v, $course, $refmodules, $userstoanalyse, [$userid], $startdate, $enddate, false);
 if (count($data) == 0) {
     echo "No data";
     exit;

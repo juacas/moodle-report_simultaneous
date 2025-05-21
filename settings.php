@@ -23,8 +23,31 @@
  */
 
 defined('MOODLE_INTERNAL') || die();
-
+require_once($CFG->dirroot . '/report/simultaneous/locallib.php');
 // Setting for the maximum time of the analisys
 $settings->add(new admin_setting_configtext('report_simultaneous/maxtime',
     get_string('maxtime', 'report_simultaneous'),
     get_string('maxtime_help', 'report_simultaneous'), 4, PARAM_INT));
+
+// Setting for alowing free time window or only activity time window.
+$settings->add(new admin_setting_configcheckbox('report_simultaneous/force_activity_time',
+    get_string('force_activity_time', 'report_simultaneous'),
+    get_string('force_activity_time_help', 'report_simultaneous'), 0));
+
+// Setting for chose the indicators to show.
+$ind = report_simultaneous_get_indicators(false);
+$indhelp = [];
+$inddef = [];
+$indopts = [];
+$indicators_help = '<ul>';
+foreach ($ind as $key => $ind) {
+    $indopts[$key] = get_string($ind->name . '_column', 'report_simultaneous');
+    $inddef[$key] = true; // Default value for all indicators is 1 [checked
+    $indicators_help = $indicators_help . "<li>". $indopts[$key] . ": ". get_string($ind->name . '_column_help', 'report_simultaneous') . "</li>";
+}
+$indicators_help = $indicators_help . '</ul>';
+$settings->add(new admin_setting_configmulticheckbox('report_simultaneous/indicators',
+    get_string('indicators', 'report_simultaneous'),
+    $indicators_help,
+    $inddef,
+    $indopts));

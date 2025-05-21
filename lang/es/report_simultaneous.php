@@ -43,6 +43,7 @@
  $string['totaltimeexceeded'] = 'El tiempo total de las actividades seleccionadas debe ser menor a {$a}';
  $string['incourse_column'] = 'En curso';
  $string['incourse_column_help'] = 'El número de vistas de actividades para este usuario en el curso. Este número es la suma de las vistas de las actividades distintas a las seleccionadas en el campo "Actividades de referencia".';
+ $string['indicators'] = 'Indicadores activados';
  $string['insite_column'] = 'En el sitio';
  $string['insite_column_help'] = 'El número de vistas de las actividades de este usuario en el sitio. Este número es la suma de las vistas de las actividades distintas a la seleccionada en el campo "Actividades de referencia".';
  $string['ips_column'] = 'IPs';
