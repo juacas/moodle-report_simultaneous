@@ -55,8 +55,8 @@ class filter_form extends \moodleform {
 
         $mform->addElement('header', 'filterheader', get_string('filter'));
         $opts = ['optional' => false];
-        $mform->addElement('date_time_selector', 'startdate', get_string('from'), $opts);
-        $mform->addElement('date_time_selector', 'enddate', get_string('to'), $opts);
+        $mform->addElement('date_time_selector', 'startdate', get_string('fromdate'), $opts);
+        $mform->addElement('date_time_selector', 'enddate', get_string('todate'), $opts);
 
         $mform->setExpanded('filterheader', true);
         // Add form elements to select the role and module.
