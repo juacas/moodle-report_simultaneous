@@ -35,7 +35,7 @@ $capabilities = array(
             'editingteacher' => CAP_ALLOW,
             'manager' => CAP_ALLOW
             ),
-        'clonepermissionsfrom' => 'coursereport/simultaneous:view'
+        'clonepermissionsfrom' => 'report/log:view'
         ),
     'report/simultaneous:adminlisting' => array(
         'riskbitmask' => RISK_PERSONAL,
@@ -44,7 +44,6 @@ $capabilities = array(
         'archetypes' => array(
             'manager' => CAP_ALLOW
         ),
-        'clonepermissionsfrom' => 'coursereport/simultaneous:adminlisting'
     ),
 );
 
