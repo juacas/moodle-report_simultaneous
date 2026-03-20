@@ -42,6 +42,22 @@ $startdate = required_param('startdate', PARAM_INT);
 $enddate = required_param('enddate', PARAM_INT);
 $refmodules = optional_param_array('refmodules', [], PARAM_INT);
 
+// start change: 12/03/2026
+$url = new moodle_url('/report/simultaneous/adminlist.php', array(
+    'id' => $id,
+    'v' => $v,
+    'userid' => $userid,
+    'startdate' => $startdate,
+    'enddate' => $enddate
+));
+
+$PAGE->set_pagelayout('report');
+$PAGE->set_url($url);
+$PAGE->set_context($context);
+$PAGE->set_title('Detalles de registros simultáneos');
+$PAGE->set_heading($course->fullname);
+// end change: 12/03/2026
+
 // Get enrolled users in course.
 $users = get_enrolled_users($context, '', 0, 'u.*', null, 0, 0, false);
 
@@ -52,30 +68,51 @@ if (empty($refmodules)) {
 }
 // Export as csv the records.
 $data = report_simultaneous_get_indicator($v, $course, $refmodules, $userstoanalyse, [$userid], $startdate, $enddate, false);
+
 if (count($data) == 0) {
-    echo "No data";
-    exit;
+    echo html_writer::tag('div', "No hay datos disponibles para estos parámetros.", array('class' => 'alert alert-info mt-3'));
 }
+// start change: 12/03/2026
+echo $OUTPUT->header();
+
+echo $OUTPUT->heading('Detalles de registros simultáneos');
+
+$backurl = new moodle_url('/report/simultaneous/index.php', array('id' => $id));
+echo html_writer::start_tag('div', ['class' => 'mb-3']);
+echo html_writer::link('#', 'Volver a los filtros anteriores', [
+    'class' => 'btn btn-secondary',
+    'onclick' => 'window.history.back(); return false;'
+]);
+echo html_writer::end_tag('div');
+
 // Dump data as a html table.
-echo html_writer::start_tag('table', ['class' => 'generaltable', 'border' => '1']);
-echo html_writer::start_tag('thead');
-$first = $data[array_key_first($data)];
-foreach ($first as $key=>$value) {
-    echo html_writer::tag('th', $key);
-}
-echo html_writer::end_tag('thead');
-echo html_writer::start_tag('tbody');
-foreach ($data as $row) {
+if (count($data) == 0) {
+    echo html_writer::tag('div', "No hay datos disponibles para estos parámetros.", array('class' => 'alert alert-info mt-3'));
+} else {
+    echo html_writer::start_tag('div', ['class' => 'table-responsive mt-3']);
+    echo html_writer::start_tag('table', ['class' => 'generaltable table table-striped table-hover']);
+    echo html_writer::start_tag('thead');
     echo html_writer::start_tag('tr');
-    foreach ($row as $cell) {
-        echo html_writer::tag('td', $cell);
+    
+    $first = $data[array_key_first($data)];
+    foreach ($first as $key=>$value) {
+        echo html_writer::tag('th', $key, ['scope' => 'col']);
     }
     echo html_writer::end_tag('tr');
+    echo html_writer::end_tag('thead');
+    
+    echo html_writer::start_tag('tbody');
+    foreach ($data as $row) {
+        echo html_writer::start_tag('tr');
+        foreach ($row as $cell) {
+            echo html_writer::tag('td', $cell);
+        }
+        echo html_writer::end_tag('tr');
+    }
+    echo html_writer::end_tag('tbody');
+    echo html_writer::end_tag('table');
+    echo html_writer::end_tag('div');
 }
-echo html_writer::end_tag('tbody');
-echo html_writer::end_tag('table');
 
-
-
-
-
+echo $OUTPUT->footer();
+// end change: 12/03/2026
