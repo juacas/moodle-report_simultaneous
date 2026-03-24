@@ -17,7 +17,7 @@
 /**
  * Version info
  *
- * @package    report
+ * @package    report_simultaneous
  * @subpackage simultaneous
  * @copyright  2023 onwards Juan Pablo de Castro  {@link https://www.uva.es}
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
@@ -25,8 +25,8 @@
 
 defined('MOODLE_INTERNAL') || die;
 
-$plugin->version   = 2025052100;             // The current plugin version (Date: YYYYMMDDXX).
-$plugin->release   = '1.1.0';               // Human-friendly version name.
+$plugin->version   = 2026032400;             // The current plugin version (Date: YYYYMMDDXX).
+$plugin->release   = '1.2.0';               // Human-friendly version name.
 $plugin->maturity  = MATURITY_STABLE;       // This version's maturity level.
 $plugin->requires  = 2020061500;             // Requires this Moodle version 3.9 and up.
 $plugin->component = 'report_simultaneous'; // Full name of the plugin (used for diagnostics).

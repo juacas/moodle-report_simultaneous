@@ -17,7 +17,7 @@
 /**
  * simultaneous report
  *
- * @package    report
+ * @package    report_simultaneous
  * @subpackage simultaneous
  * @copyright  2023 Juan Pablo de Castro  <juan.pablo.de.castro@gmail.com>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
@@ -35,7 +35,7 @@ define('SHOW_ALL_PAGE_SIZE', 5000);
 $id = required_param('id', PARAM_INT); // Course id.
 
 
-if (!$course = $DB->get_record('course', array('id' => $id))) {
+if (!$course = $DB->get_record('course', ['id' => $id])) {
     throw new moodle_exception('invalidcourse');
 }
 
@@ -44,15 +44,12 @@ $context = context_course::instance($course->id);
 require_capability('report/simultaneous:view', $context);
 
 $strsimultaneous = get_string('simultaneousreport', 'report_simultaneous');
-$url = new moodle_url('/report/simultaneous/index.php', array('id' => $id));
+$url = new moodle_url('/report/simultaneous/index.php', ['id' => $id]);
 
 $PAGE->set_pagelayout('report');
 $PAGE->set_url($url);
-$PAGE->set_title(format_string($course->shortname, true, array('context' => $context)) . ': ' . $strsimultaneous);
-$PAGE->set_heading(format_string($course->fullname, true, array('context' => $context)));
-
-// Release session lock.
-\core\session\manager::write_close();
+$PAGE->set_title(format_string($course->shortname, true, ['context' => $context]) . ': ' . $strsimultaneous);
+$PAGE->set_heading(format_string($course->fullname, true, ['context' => $context]));
 
 // Logs will not have been recorded before the course timecreated time.
 $minlog = $course->timecreated;
@@ -65,7 +62,7 @@ if (empty($logtable)) {
     $onlyuselegacyreader = true;
 }
 
-list($uselegacyreader, $useinternalreader, $minloginternalreader, $logtable) = report_simultaneous_get_common_log_variables();
+[$uselegacyreader, $useinternalreader, $minloginternalreader, $logtable] = report_simultaneous_get_common_log_variables();
 
 // If no legacy and no internal log then don't proceed.
 if (!$uselegacyreader && !$useinternalreader) {
@@ -84,7 +81,8 @@ if (!$downloading) {
     $pluginname = get_string('pluginname', 'report_simultaneous');
     echo $OUTPUT->header();
     // If class report_helper exists, save the selected report.
-    if ($CFG->branch < 4) { // Deprecated Moodle < 4
+    if ($CFG->branch < 4) { // Deprecated Moodle < 4.
+        // phpcs:ignore
         core\report_helper::save_selected_report($id, $url);
     }
     core\report_helper::print_report_selector($pluginname);
@@ -106,7 +104,7 @@ if ($filterform->is_cancelled()) {
     redirect($redir);
 } else if ($filter = $filterform->get_data()) {
     if (!$downloading) {
-        // When the form is submitted, and the data is successfully validated
+        // When the form is submitted, and the data is successfully validated.
         $filterform->display();
     }
 
@@ -151,27 +149,32 @@ if ($filterform->is_cancelled()) {
     $PAGE->set_url($url);
 
     $table = report_simultaneous_define_table($url, $course, $downloading);
+    // Release session lock now: define_table() has finished writing to the session
+    // (flexible_table prefs). Caches and forms have also already run.
+    // When downloading, is_downloading() inside define_table already closed it;
+    // calling write_close() again here is a safe no-op in that case.
+    \core\session\manager::write_close();
     $perpage = SHOW_ALL_PAGE_SIZE;
 
     $modinfo = get_fast_modinfo($course);
     // Check modules selected.
     foreach ($refmodules as $modid) {
         if (!array_key_exists($modid, $modinfo->cms)) {
-            throw new moodle_exception('invalidadtivity');
+            throw new exception('invalidadtivity');
         }
     }
 
     // Trigger a report viewed event.
     $event = \report_simultaneous\event\report_viewed::create(
-        array(
+        [
             'context' => $context,
-            'other' => array(
+            'other' => [
                 'refmodules' => $refmodules,
                 'startdate' => $startdate,
                 'enddate' => $enddate,
-                'courseid' => $course->id
-            )
-        )
+                'courseid' => $course->id,
+            ],
+        ]
     );
 
     $event->trigger();
@@ -190,7 +193,18 @@ if ($filterform->is_cancelled()) {
     $htmlouput = $table->is_downloading() == 'html' || $table->is_downloading() == false;
 
     // Generate the report data.
-    $dataset = report_simultaneous_get_data($course, $table, $refmodules, $users, $userstolist, $startdate, $enddate, $showokusers, $checkboxes, $htmlouput);
+    $dataset = report_simultaneous_get_data(
+        $course,
+        $table,
+        $refmodules,
+        $users,
+        $userstolist,
+        $startdate,
+        $enddate,
+        $showokusers,
+        $checkboxes,
+        $htmlouput
+    );
     // Sort dataset by field $fieldname.
     if ($ssort) {
         $columarr = array_column($dataset, $ssort);
@@ -221,14 +235,14 @@ if ($filterform->is_cancelled()) {
             echo '<div class="py-3">';
             echo html_writer::label(get_string('withselectedusers'), 'formactionid');
             $displaylist['#messageselect'] = get_string('messageselectadd');
-            $withselectedparams = array(
+            $withselectedparams = [
                 'id' => 'formactionid',
                 'data-action' => 'toggle',
                 'data-togglegroup' => 'simultaneous-table',
                 'data-toggle' => 'action',
-                'disabled' => true
-            );
-            echo html_writer::select($displaylist, 'formaction', '', array('' => 'choosedots'), $withselectedparams);
+                'disabled' => true,
+            ];
+            echo html_writer::select($displaylist, 'formaction', '', ['' => 'choosedots'], $withselectedparams);
             echo '</div>' . "\n";
             echo '</form>' . "\n";
 
@@ -238,14 +252,11 @@ if ($filterform->is_cancelled()) {
         }
         echo '</div>' . "\n";
     }
-
 } else {
     // This branch is executed if the form is submitted but the data doesn't
     // validate and the form should be redisplayed or on the first display of the form.
-
     // Set anydefault data (if any).
-    //$filterform->set_data($toform);
-
+    // $filterform->set_data($toform);
     // Display the form.
     $filterform->display();
 }
